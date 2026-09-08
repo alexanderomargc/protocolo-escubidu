@@ -1,0 +1,253 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>PROTOCOLO ESCUBIDU</title>
+<style>
+  :root{
+    --bg:#050607;
+    --panel:#0a0d10;
+    --text:#d8f7e5;
+    --muted:#6d8978;
+    --accent:#8cffb2;
+    --danger:#ff5f67;
+    --line:#183523;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--text);font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+  body{
+    display:grid;place-items:center;
+    overflow:hidden;
+    background:
+      radial-gradient(circle at 50% 35%, rgba(30,90,55,.10), transparent 38%),
+      linear-gradient(rgba(255,255,255,.015) 1px, transparent 1px);
+    background-size:auto, 100% 4px;
+  }
+  .wrap{width:min(92vw,760px);padding:24px}
+  .terminal{
+    border:1px solid var(--line);
+    background:rgba(5,8,7,.92);
+    box-shadow:0 0 50px rgba(59,255,126,.06), inset 0 0 30px rgba(59,255,126,.02);
+    border-radius:10px;
+    overflow:hidden;
+  }
+  .topbar{
+    display:flex;justify-content:space-between;gap:16px;align-items:center;
+    padding:12px 16px;border-bottom:1px solid var(--line);color:var(--muted);font-size:12px
+  }
+  .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--accent);box-shadow:0 0 10px var(--accent);margin-right:7px}
+  main{padding:24px;min-height:430px;position:relative}
+  h1{margin:0 0 20px;font-size:clamp(23px,4vw,38px);letter-spacing:.16em;font-weight:700}
+  .status{color:var(--accent)}
+  #log{white-space:pre-wrap;line-height:1.55;font-size:clamp(13px,2vw,16px);min-height:230px}
+  .cursor::after{content:"▋";animation:blink 1s steps(1) infinite}
+  @keyframes blink{50%{opacity:0}}
+  .progress-shell{height:8px;background:#0b1510;border:1px solid #16331f;border-radius:99px;overflow:hidden;margin:18px 0}
+  #progress{height:100%;width:0;background:linear-gradient(90deg,#3cff78,#a8ffc1);box-shadow:0 0 12px rgba(82,255,129,.45);transition:width .35s ease}
+  .actions{display:none;gap:12px;flex-wrap:wrap;margin-top:20px}
+  button{
+    font:inherit;padding:11px 16px;border-radius:7px;border:1px solid #2f6b44;
+    background:#0b1710;color:var(--text);cursor:pointer
+  }
+  button:hover{background:#102718}
+  #noBtn{position:relative}
+  .hidden{display:none!important}
+  .center{text-align:center}
+  .big{
+    font-size:clamp(28px,6vw,56px);font-weight:800;letter-spacing:.05em;line-height:1.15;
+    text-shadow:0 0 18px rgba(140,255,178,.25)
+  }
+  .danger{color:var(--danger);text-shadow:0 0 18px rgba(255,95,103,.22)}
+  .tiny{color:var(--muted);font-size:12px;margin-top:18px}
+  .glitch{animation:glitch .15s steps(2) 6}
+  @keyframes glitch{
+    0%{transform:translate(0)}
+    20%{transform:translate(-2px,1px)}
+    40%{transform:translate(2px,-1px)}
+    60%{transform:translate(-1px,-1px)}
+    80%{transform:translate(1px,1px)}
+    100%{transform:translate(0)}
+  }
+  .scanline{
+    pointer-events:none;position:absolute;left:0;right:0;height:2px;top:-5%;
+    background:rgba(140,255,178,.15);box-shadow:0 0 10px rgba(140,255,178,.4);
+    animation:scan 5s linear infinite
+  }
+  @keyframes scan{to{top:105%}}
+  .footer{padding:10px 16px;border-top:1px solid var(--line);color:#3d5a48;font-size:11px}
+  @media (max-width:520px){
+    .wrap{padding:10px}
+    main{padding:18px;min-height:480px}
+    .topbar{font-size:10px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <section class="terminal" id="terminal">
+    <div class="topbar">
+      <span><span class="dot"></span>PROTOCOLO ESCUBIDU // SESIÓN ACTIVA</span>
+      <span id="clock">--:--:--</span>
+    </div>
+    <main>
+      <div class="scanline"></div>
+      <h1>ANOMALÍA <span class="status">DETECTADA</span></h1>
+      <div id="log" class="cursor"></div>
+
+      <div class="progress-shell" id="progressShell">
+        <div id="progress"></div>
+      </div>
+
+      <div class="actions" id="actions">
+        <button id="yesBtn">REPRODUCIR REGISTRO</button>
+        <button id="noBtn">CANCELAR</button>
+      </div>
+
+      <div id="final" class="hidden center">
+        <div id="countdown" class="big"></div>
+        <div id="phrase" class="hidden big">ESCUBIDU PAPA Y EL<br>POM POM POM POM POM</div>
+        <div id="identified" class="hidden">
+          <div class="big danger" style="margin-top:28px">SUJETO IDENTIFICADO</div>
+          <div class="tiny">Coincidencia verbal: 99.97%</div>
+          <div class="tiny" style="margin-top:28px;font-size:14px;color:#9ab7a5">El Protocolo Escubidu ha comenzado.</div>
+          <div class="tiny" style="margin-top:8px">Sabíamos que volverías.</div>
+        </div>
+      </div>
+    </main>
+    <div class="footer">REGISTRO 08-0926 // CLASIFICACIÓN: POM-5</div>
+  </section>
+</div>
+
+<script>
+const FRASE = "Escubidu papa y el pom pom pom pom pom";
+
+const log = document.getElementById("log");
+const progress = document.getElementById("progress");
+const actions = document.getElementById("actions");
+const terminal = document.getElementById("terminal");
+const finalBox = document.getElementById("final");
+const phrase = document.getElementById("phrase");
+const identified = document.getElementById("identified");
+const countdown = document.getElementById("countdown");
+const progressShell = document.getElementById("progressShell");
+
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+
+function tickClock(){
+  document.getElementById("clock").textContent =
+    new Date().toLocaleTimeString("es-MX",{hour12:false});
+}
+setInterval(tickClock,1000); tickClock();
+
+async function typeLine(text, speed=23){
+  for(const ch of text){
+    log.textContent += ch;
+    await sleep(speed + Math.random()*16);
+  }
+  log.textContent += "\n";
+}
+
+async function boot(){
+  await sleep(650);
+  await typeLine("> Inicializando módulo de reconocimiento...");
+  progress.style.width="12%";
+  await sleep(550);
+  await typeLine("> Analizando secuencias verbales residuales...");
+  progress.style.width="31%";
+  await sleep(700);
+  await typeLine("> Fragmento detectado: ESC...");
+  await sleep(420);
+  await typeLine("> Fragmento detectado: ...UBIDU");
+  progress.style.width="49%";
+  await sleep(650);
+  await typeLine("> Fragmento detectado: PAPA...");
+  progress.style.width="67%";
+  await sleep(550);
+  await typeLine("> Patrón repetitivo: POM × 5");
+  progress.style.width="83%";
+  await sleep(850);
+  terminal.classList.add("glitch");
+  await typeLine("> ADVERTENCIA: coincidencia histórica encontrada.", 18);
+  terminal.classList.remove("glitch");
+  progress.style.width="96%";
+  await sleep(700);
+  await typeLine("> Verificando identidad del sujeto...");
+  progress.style.width="100%";
+  await sleep(900);
+  await typeLine("> COINCIDENCIA: 99.97%");
+  await typeLine("> Origen del registro: DESCONOCIDO");
+  await typeLine("> ¿Desea reproducir el registro?");
+  log.classList.remove("cursor");
+  actions.style.display="flex";
+}
+
+function dodge(){
+  const x = Math.floor(Math.random()*160)-80;
+  const y = Math.floor(Math.random()*70)-35;
+  document.getElementById("noBtn").style.transform=`translate(${x}px,${y}px)`;
+}
+document.getElementById("noBtn").addEventListener("mouseenter", dodge);
+document.getElementById("noBtn").addEventListener("touchstart", e=>{ e.preventDefault(); dodge(); });
+
+document.getElementById("noBtn").addEventListener("click", async () => {
+  const noBtn = document.getElementById("noBtn");
+  const yesBtn = document.getElementById("yesBtn");
+
+  noBtn.disabled = true;
+  yesBtn.disabled = true;
+
+  log.textContent += "\n> Solicitud de cancelación recibida...";
+  await sleep(700);
+  log.textContent += "\n> ERROR: CANCELACIÓN DENEGADA.";
+  await sleep(800);
+  log.textContent += "\n> El protocolo ya fue iniciado.";
+  terminal.classList.add("glitch");
+  await sleep(700);
+  terminal.classList.remove("glitch");
+  await sleep(600);
+
+  runProtocol();
+});
+
+document.getElementById("yesBtn").addEventListener("click", runProtocol);
+
+async function runProtocol(){
+  actions.classList.add("hidden");
+  log.classList.add("hidden");
+  progressShell.classList.add("hidden");
+  document.querySelector("h1").classList.add("hidden");
+  finalBox.classList.remove("hidden");
+
+  for(const n of [3,2,1]){
+    countdown.textContent=n;
+    terminal.classList.add("glitch");
+    await sleep(650);
+    terminal.classList.remove("glitch");
+    await sleep(250);
+  }
+  countdown.textContent="";
+  phrase.classList.remove("hidden");
+  speak();
+  await sleep(3200);
+  phrase.classList.add("glitch");
+  await sleep(800);
+  phrase.classList.remove("glitch");
+  identified.classList.remove("hidden");
+}
+
+function speak(){
+  if(!("speechSynthesis" in window)) return;
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(FRASE);
+  u.lang="es-MX";
+  u.rate=0.84;
+  u.pitch=0.62;
+  u.volume=1;
+  speechSynthesis.speak(u);
+}
+
+boot();
+</script>
+</body>
+</html>
